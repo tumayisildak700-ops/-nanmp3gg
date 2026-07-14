@@ -4,6 +4,7 @@ import fs from "fs";
 import crypto from "crypto";
 import { fileURLToPath } from "url";
 import { createServer as createViteServer } from "vite";
+import { initFirestoreSync, syncToFirestore } from "./src/lib/firebaseAdmin";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -60,81 +61,101 @@ const initialDb = {
   }
 };
 
+let dbInMemoryCache: any = null;
+
 if (!fs.existsSync(DB_FILE)) {
   fs.writeFileSync(DB_FILE, JSON.stringify(initialDb, null, 2), "utf-8");
 }
 
 // Read/Write Helpers
 function readDb() {
+  if (dbInMemoryCache) {
+    return dbInMemoryCache;
+  }
+
+  let parsed: any;
   try {
     const data = fs.readFileSync(DB_FILE, "utf-8");
-    const parsed = JSON.parse(data);
-    // Make sure config exists in read data
-    if (!parsed.config) {
-      parsed.config = {
-        premiumMonthlyPrice: 49,
-        premiumYearlyPrice: 470,
-        bankDetails: {
-          bankName: "Garanti BBVA",
-          iban: "TR93 0006 2000 0001 2345 6789 01",
-          accountHolder: "Tümay Işıldak"
-        }
-      };
-    }
-    if (!parsed.config.bankDetails) {
-      parsed.config.bankDetails = {
+    parsed = JSON.parse(data);
+  } catch (error) {
+    parsed = JSON.parse(JSON.stringify(initialDb));
+  }
+
+  // Make sure config exists in read data
+  if (!parsed.config) {
+    parsed.config = {
+      premiumMonthlyPrice: 49,
+      premiumYearlyPrice: 470,
+      bankDetails: {
         bankName: "Garanti BBVA",
         iban: "TR93 0006 2000 0001 2345 6789 01",
         accountHolder: "Tümay Işıldak"
-      };
-    }
-    if (!parsed.config.supportStartHour) {
-      parsed.config.supportStartHour = "09:00";
-    }
-    if (!parsed.config.supportEndHour) {
-      parsed.config.supportEndHour = "18:00";
-    }
-    if (parsed.config.supportEnabled === undefined) {
-      parsed.config.supportEnabled = true;
-    }
-    // Ensure friendships and messages collections exist
-    if (!parsed.friendships) {
-      parsed.friendships = [];
-    }
-    if (!parsed.messages) {
-      parsed.messages = [];
-    }
-    // Backfill usernames for existing users who do not have one
-    if (parsed.users && Array.isArray(parsed.users)) {
-      let changed = false;
-      parsed.users.forEach((u: any) => {
-        if (!u.username) {
-          let baseUsername = (u.name || "user").trim().toLowerCase()
-            .replace(/[^a-z0-9_]/g, "")
-            .slice(0, 15);
-          if (!baseUsername) baseUsername = "user";
-          let username = baseUsername;
-          let suffix = 1;
-          while (parsed.users.some((x: any) => x.id !== u.id && x.username === username)) {
-            username = `${baseUsername}${suffix}`;
-            suffix++;
-          }
-          u.username = username;
-          changed = true;
-        }
-      });
-      if (changed) {
-        fs.writeFileSync(DB_FILE, JSON.stringify(parsed, null, 2), "utf-8");
       }
-    }
-    return parsed;
-  } catch (error) {
-    return initialDb;
+    };
   }
+  if (!parsed.config.bankDetails) {
+    parsed.config.bankDetails = {
+      bankName: "Garanti BBVA",
+      iban: "TR93 0006 2000 0001 2345 6789 01",
+      accountHolder: "Tümay Işıldak"
+    };
+  }
+  if (!parsed.config.supportStartHour) {
+    parsed.config.supportStartHour = "09:00";
+  }
+  if (!parsed.config.supportEndHour) {
+    parsed.config.supportEndHour = "18:00";
+  }
+  if (parsed.config.supportEnabled === undefined) {
+    parsed.config.supportEnabled = true;
+  }
+  // Ensure friendships and messages collections exist
+  if (!parsed.friendships) {
+    parsed.friendships = [];
+  }
+  if (!parsed.messages) {
+    parsed.messages = [];
+  }
+  // Backfill usernames for existing users who do not have one
+  if (parsed.users && Array.isArray(parsed.users)) {
+    let changed = false;
+    parsed.users.forEach((u: any) => {
+      if (!u.username) {
+        let baseUsername = (u.name || "user").trim().toLowerCase()
+          .replace(/[^a-z0-9_]/g, "")
+          .slice(0, 15);
+        if (!baseUsername) baseUsername = "user";
+        let username = baseUsername;
+        let suffix = 1;
+        while (parsed.users.some((x: any) => x.id !== u.id && x.username === username)) {
+          username = `${baseUsername}${suffix}`;
+          suffix++;
+        }
+        u.username = username;
+        changed = true;
+      }
+    });
+    if (changed) {
+      try {
+        fs.writeFileSync(DB_FILE, JSON.stringify(parsed, null, 2), "utf-8");
+      } catch (e) {}
+    }
+  }
+  dbInMemoryCache = parsed;
+  return parsed;
 }
 
 function writeDb(data: any) {
-  fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), "utf-8");
+  dbInMemoryCache = data;
+  try {
+    fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), "utf-8");
+  } catch (e) {
+    console.error("Failed to write local database.json:", e);
+  }
+  // Asynchronously synchronize with Firestore
+  syncToFirestore(data).catch((err) => {
+    console.error("Failed to sync to Firestore in background:", err);
+  });
 }
 
 function logSystemActivity(action: string, details: string) {
@@ -2653,6 +2674,19 @@ app.post("/api/admin/ban-appeals/:id/resolve", authenticateToken, requireAdmin, 
 // --- VITE DEV SERVER / PRODUCTION SERVING SETUP ---
 
 async function startServer() {
+  try {
+    // Read the local file database first as initialDb
+    const localDb = readDb();
+    console.log("Starting Firestore synchronization...");
+    // Initialize and sync with Firestore
+    dbInMemoryCache = await initFirestoreSync(localDb);
+    // Write back the loaded Firestore data to local database.json so they match
+    fs.writeFileSync(DB_FILE, JSON.stringify(dbInMemoryCache, null, 2), "utf-8");
+    console.log("Successfully synchronized in-memory database with Firestore!");
+  } catch (error) {
+    console.error("Firestore initialization failed. Using local DB fallback:", error);
+  }
+
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },

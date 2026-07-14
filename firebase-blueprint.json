@@ -1,0 +1,132 @@
+{
+  "entities": {
+    "user": {
+      "title": "User",
+      "description": "Represents a registered user on the converter platform.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique user ID" },
+        "email": { "type": "string", "description": "Email address of the user" },
+        "name": { "type": "string", "description": "Full name of the user" },
+        "username": { "type": "string", "description": "Unique username of the user" },
+        "passwordHash": { "type": "string", "description": "SHA-256 password hash" },
+        "role": { "type": "string", "enum": ["user", "admin"], "description": "User role" },
+        "isPremium": { "type": "boolean", "description": "Whether the user has premium status" },
+        "premiumExpiry": { "type": "string", "description": "Premium access expiration date" },
+        "avatar": { "type": "string", "description": "Optional avatar URL" },
+        "downloadsCount": { "type": "integer", "description": "Number of successfully completed conversions" },
+        "createdAt": { "type": "string", "description": "Creation timestamp" },
+        "lastIp": { "type": "string", "description": "Most recent IP address" },
+        "ips": { "type": "array", "description": "List of IP addresses used by the user" },
+        "isBanned": { "type": "boolean", "description": "Whether the user is currently banned" }
+      },
+      "required": ["id", "email", "name", "passwordHash", "role", "isPremium", "createdAt"]
+    },
+    "announcement": {
+      "title": "Announcement",
+      "description": "Represents a system or administrative announcement.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique announcement ID" },
+        "title": { "type": "string", "description": "Announcement title" },
+        "content": { "type": "string", "description": "Announcement body content" },
+        "category": { "type": "string", "description": "E.g., Duyuru, Güncelleme, Kampanya" },
+        "isPinned": { "type": "boolean", "description": "Whether the announcement is pinned to top" },
+        "status": { "type": "string", "enum": ["published", "draft", "scheduled"], "description": "Publish status" },
+        "scheduledAt": { "type": "string", "description": "Optional scheduled publication timestamp" },
+        "readCount": { "type": "integer", "description": "Number of unique views" },
+        "acknowledgedBy": { "type": "array", "description": "Identifiers of users/visitors who acknowledged" },
+        "createdAt": { "type": "string", "description": "Creation timestamp" },
+        "authorName": { "type": "string", "description": "Name of the publishing admin" },
+        "botActive": { "type": "boolean", "description": "Whether fake read-count bot is active" },
+        "botTarget": { "type": "integer", "description": "Target fake read count" },
+        "botSpeed": { "type": "string", "enum": ["slow", "normal", "fast"], "description": "Bot read-increment speed" }
+      },
+      "required": ["id", "title", "content", "createdAt"]
+    },
+    "conversion": {
+      "title": "Conversion",
+      "description": "Represents a YouTube URL video/audio conversion record.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique conversion ID" },
+        "userId": { "type": "string", "description": "ID of user who initiated conversion" },
+        "youtubeUrl": { "type": "string", "description": "Source YouTube video URL" },
+        "title": { "type": "string", "description": "Title of the video/audio" },
+        "format": { "type": "string", "enum": ["mp3", "mp4"], "description": "Target format" },
+        "quality": { "type": "string", "description": "Audio bitrate or video resolution" },
+        "status": { "type": "string", "enum": ["pending", "processing", "completed", "failed"], "description": "Current status" },
+        "downloadUrl": { "type": "string", "description": "URL to download converted file" },
+        "createdAt": { "type": "string", "description": "Creation timestamp" },
+        "duration": { "type": "string", "description": "Video duration" }
+      },
+      "required": ["id", "youtubeUrl", "format", "status", "createdAt"]
+    },
+    "friendship": {
+      "title": "Friendship",
+      "description": "Represents an interactive friend connection between users.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique friendship record ID" },
+        "senderId": { "type": "string", "description": "User ID who sent request" },
+        "receiverId": { "type": "string", "description": "User ID who received request" },
+        "status": { "type": "string", "enum": ["pending", "accepted", "declined"], "description": "Connection status" },
+        "createdAt": { "type": "string", "description": "Creation timestamp" },
+        "updatedAt": { "type": "string", "description": "Update timestamp" }
+      },
+      "required": ["id", "senderId", "receiverId", "status", "createdAt", "updatedAt"]
+    },
+    "message": {
+      "title": "Message",
+      "description": "Represents a direct message exchanged between friends.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique message ID" },
+        "senderId": { "type": "string", "description": "User ID of the sender" },
+        "receiverId": { "type": "string", "description": "User ID of the recipient" },
+        "content": { "type": "string", "description": "Censored text content of message" },
+        "isRead": { "type": "boolean", "description": "Whether message has been read" },
+        "createdAt": { "type": "string", "description": "Creation timestamp" }
+      },
+      "required": ["id", "senderId", "receiverId", "content", "isRead", "createdAt"]
+    },
+    "systemLog": {
+      "title": "SystemLog",
+      "description": "Represents administrative and user activity logs.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique log ID" },
+        "timestamp": { "type": "string", "description": "Occurred timestamp" },
+        "action": { "type": "string", "description": "Action name" },
+        "details": { "type": "string", "description": "Detail message" }
+      },
+      "required": ["id", "timestamp", "action", "details"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "user",
+      "description": "Users of the platform."
+    },
+    "announcements/{announcementId}": {
+      "schema": "announcement",
+      "description": "System Announcements."
+    },
+    "conversions/{conversionId}": {
+      "schema": "conversion",
+      "description": "Video conversion records."
+    },
+    "friendships/{friendshipId}": {
+      "schema": "friendship",
+      "description": "Interactive friendship state records."
+    },
+    "messages/{messageId}": {
+      "schema": "message",
+      "description": "Friend chat messages."
+    },
+    "systemLogs/{logId}": {
+      "schema": "systemLog",
+      "description": "System and admin logs."
+    }
+  }
+}
