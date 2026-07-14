@@ -6,8 +6,20 @@ import { fileURLToPath } from "url";
 import { createServer as createViteServer } from "vite";
 import { initFirestoreSync, syncToFirestore } from "./src/lib/firebaseAdmin";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const getFilenameAndDirname = () => {
+  if (typeof import.meta !== "undefined" && import.meta.url) {
+    try {
+      const fn = fileURLToPath(import.meta.url);
+      return { filename: fn, dirname: path.dirname(fn) };
+    } catch (e) {}
+  }
+  return { 
+    filename: typeof __filename !== "undefined" ? __filename : "", 
+    dirname: typeof __dirname !== "undefined" ? __dirname : "" 
+  };
+};
+
+const { filename: __filename, dirname: __dirname } = getFilenameAndDirname();
 
 const app = express();
 const PORT = 3000;
