@@ -9,14 +9,21 @@ const originalFetch = window.fetch;
 const customFetch = async function (input: RequestInfo | URL, init?: RequestInit) {
   let url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
 
-  if (url.startsWith("/api/") || url.startsWith("api/")) {
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(url, window.location.origin);
+  } catch (e) {
+    return originalFetch(input, init);
+  }
+
+  if (parsedUrl.pathname.startsWith("/api/")) {
     const isStaticHost =
       !window.location.hostname.includes("run.app") &&
       !window.location.hostname.includes("localhost") &&
       !window.location.hostname.includes("127.0.0.1");
 
     if (isStaticHost) {
-      const cleanPath = url.startsWith("/") ? url : `/${url}`;
+      const cleanPath = parsedUrl.pathname + parsedUrl.search + parsedUrl.hash;
       const preReleaseUrl = `https://ais-pre-uz5exvje5uybgucpklgl4c-242445166252.europe-west1.run.app${cleanPath}`;
       const devUrl = `https://ais-dev-uz5exvje5uybgucpklgl4c-242445166252.europe-west1.run.app${cleanPath}`;
 
