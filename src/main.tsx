@@ -6,7 +6,7 @@ import './index.css';
 // Patch window.fetch to redirect relative /api/ requests to the deployed backend on Cloud Run
 // when the frontend is hosted on static hosting environments (like GitHub Pages, etc.)
 const originalFetch = window.fetch;
-window.fetch = function (input: RequestInfo | URL, init?: RequestInit) {
+const customFetch = function (input: RequestInfo | URL, init?: RequestInit) {
   let url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
 
   if (url.startsWith("/api/") || url.startsWith("api/")) {
@@ -32,6 +32,23 @@ window.fetch = function (input: RequestInfo | URL, init?: RequestInit) {
 
   return originalFetch(input, init);
 };
+
+try {
+  // Try assigning directly
+  (window as any).fetch = customFetch;
+} catch (e) {
+  try {
+    // If direct assignment fails (e.g. getter-only property in sandbox), try Object.defineProperty
+    Object.defineProperty(window, 'fetch', {
+      value: customFetch,
+      configurable: true,
+      writable: true,
+      enumerable: true
+    });
+  } catch (err) {
+    console.warn("Could not patch window.fetch. This is expected in some secure sandbox environments.", err);
+  }
+}
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
