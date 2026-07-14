@@ -37,16 +37,24 @@ const customFetch = async function (input: RequestInfo | URL, init?: RequestInit
         }
       };
 
+      // We prioritize devUrl because that's where the latest active code runs during development!
+      try {
+        const response = await originalFetch(makeRequest(devUrl), init);
+        // If it's a successful response, or a client error (like 400, 401, 403, 404 which are valid business logic responses), return it!
+        // We only fall back to pre-release if it failed to fetch (throws) or returned a server-side 5xx error / 405.
+        if (response.ok || (response.status >= 400 && response.status < 500 && response.status !== 405)) {
+          return response;
+        }
+        console.warn("Dev backend returned status error, trying pre-release backend as fallback:", response.status);
+      } catch (err) {
+        console.warn("Dev backend failed to fetch, trying pre-release backend as fallback:", err);
+      }
+
       try {
         return await originalFetch(makeRequest(preReleaseUrl), init);
       } catch (err) {
-        console.warn("Pre-release backend failed, trying dev backend as fallback:", err);
-        try {
-          return await originalFetch(makeRequest(devUrl), init);
-        } catch (devErr) {
-          console.error("Both backends failed to fetch:", devErr);
-          throw devErr;
-        }
+        console.error("Both backends failed to fetch:", err);
+        throw err;
       }
     }
   }
