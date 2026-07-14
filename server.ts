@@ -2,24 +2,8 @@ import express from "express";
 import path from "path";
 import fs from "fs";
 import crypto from "crypto";
-import { fileURLToPath } from "url";
 import { createServer as createViteServer } from "vite";
 import { initFirestoreSync, syncToFirestore } from "./src/lib/firebaseAdmin";
-
-const getFilenameAndDirname = () => {
-  if (typeof import.meta !== "undefined" && import.meta.url) {
-    try {
-      const fn = fileURLToPath(import.meta.url);
-      return { filename: fn, dirname: path.dirname(fn) };
-    } catch (e) {}
-  }
-  return { 
-    filename: typeof __filename !== "undefined" ? __filename : "", 
-    dirname: typeof __dirname !== "undefined" ? __dirname : "" 
-  };
-};
-
-const { filename: __filename, dirname: __dirname } = getFilenameAndDirname();
 
 const app = express();
 const PORT = 3000;
@@ -35,7 +19,7 @@ app.use((req, res, next) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
   }
   res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, PUT, PATCH, POST, DELETE, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept, Origin");
   res.setHeader("Access-Control-Allow-Credentials", "true");
 
   // Handle preflight OPTIONS request
