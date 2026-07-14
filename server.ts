@@ -2620,6 +2620,24 @@ async function startServer() {
     console.log("Starting Firestore synchronization...");
     // Initialize and sync with Firestore
     dbInMemoryCache = await initFirestoreSync(localDb);
+    // Automatically unban everyone and empty banned IPs on startup
+    let updatedBans = false;
+    if (dbInMemoryCache.bannedIps && dbInMemoryCache.bannedIps.length > 0) {
+      dbInMemoryCache.bannedIps = [];
+      updatedBans = true;
+    }
+    if (dbInMemoryCache.users && Array.isArray(dbInMemoryCache.users)) {
+      dbInMemoryCache.users.forEach((u: any) => {
+        if (u.isBanned) {
+          u.isBanned = false;
+          updatedBans = true;
+        }
+      });
+    }
+    if (updatedBans) {
+      console.log("Engellenen tüm kullanıcılar ve IP'ler temizlendi. Veritabanı güncelleniyor...");
+      await syncToFirestore(dbInMemoryCache);
+    }
     // Write back the loaded Firestore data to local database.json so they match
     fs.writeFileSync(DB_FILE, JSON.stringify(dbInMemoryCache, null, 2), "utf-8");
     console.log("Successfully synchronized in-memory database with Firestore!");
