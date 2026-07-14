@@ -1,4 +1,4 @@
-import { initializeApp, getApps } from "firebase-admin/app";
+import { initializeApp, getApps, getApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import fs from "fs";
 import path from "path";
@@ -19,14 +19,14 @@ if (!firebaseConfig) {
 }
 
 // Initialize Firebase Admin
-if (getApps().length === 0) {
-  initializeApp({
-    projectId: firebaseConfig.projectId,
-  });
-}
+const app = getApps().length === 0
+  ? initializeApp({ projectId: firebaseConfig.projectId })
+  : getApp();
 
-// Get the specific database instance
-export const db = getFirestore(firebaseConfig.firestoreDatabaseId || "(default)");
+// Get the specific database instance using the app and custom database ID
+export const db = firebaseConfig.firestoreDatabaseId && firebaseConfig.firestoreDatabaseId !== "(default)"
+  ? getFirestore(app, firebaseConfig.firestoreDatabaseId)
+  : getFirestore(app);
 
 let lastState: any = null;
 
