@@ -6,7 +6,7 @@ import './index.css';
 // Patch window.fetch to redirect relative /api/ requests to the deployed backend on Cloud Run
 // when the frontend is hosted on static hosting environments (like GitHub Pages, etc.)
 const originalFetch = window.fetch;
-const customFetch = function (input: RequestInfo | URL, init?: RequestInit) {
+const customFetch = async function (input: RequestInfo | URL, init?: RequestInit) {
   let url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
 
   if (url.startsWith("/api/") || url.startsWith("api/")) {
@@ -16,16 +16,30 @@ const customFetch = function (input: RequestInfo | URL, init?: RequestInit) {
       !window.location.hostname.includes("127.0.0.1");
 
     if (isStaticHost) {
-      const backendUrl = "https://ais-pre-uz5exvje5uybgucpklgl4c-242445166252.europe-west1.run.app";
       const cleanPath = url.startsWith("/") ? url : `/${url}`;
-      url = `${backendUrl}${cleanPath}`;
+      const preReleaseUrl = `https://ais-pre-uz5exvje5uybgucpklgl4c-242445166252.europe-west1.run.app${cleanPath}`;
+      const devUrl = `https://ais-dev-uz5exvje5uybgucpklgl4c-242445166252.europe-west1.run.app${cleanPath}`;
 
-      if (typeof input === "string") {
-        input = url;
-      } else if (input instanceof URL) {
-        input = new URL(url);
-      } else {
-        input = new Request(url, input);
+      const makeRequest = (targetUrl: string) => {
+        if (typeof input === "string") {
+          return targetUrl;
+        } else if (input instanceof URL) {
+          return new URL(targetUrl);
+        } else {
+          return new Request(targetUrl, input);
+        }
+      };
+
+      try {
+        return await originalFetch(makeRequest(preReleaseUrl), init);
+      } catch (err) {
+        console.warn("Pre-release backend failed, trying dev backend as fallback:", err);
+        try {
+          return await originalFetch(makeRequest(devUrl), init);
+        } catch (devErr) {
+          console.error("Both backends failed to fetch:", devErr);
+          throw devErr;
+        }
       }
     }
   }
