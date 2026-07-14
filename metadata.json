@@ -1,0 +1,8 @@
+{
+  "name": "Remix: TubeConvert Admin Pro",
+  "description": "YouTube converter featuring user registration, announcement systems, and secure administrative panels with permanent super-admin privileges.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

@@ -1,0 +1,69 @@
+{
+  "users": [
+    {
+      "id": "superadmin-init",
+      "email": "tumayisildak700@gmail.com",
+      "name": "Tümay Işıldak",
+      "passwordHash": "240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9",
+      "role": "admin",
+      "isPremium": true,
+      "createdAt": "2026-07-02T18:01:11.620Z",
+      "ips": [
+        "2a00:1d35:93f1:da00:dc34:70c9:7ca0:9fc9",
+        "95.10.28.111"
+      ],
+      "lastIp": "95.10.28.111"
+    },
+    {
+      "id": "e17dc9a8-4e0f-421b-8945-dfd2ce0b5f64",
+      "email": "iremsaltanat002001@gmail.com",
+      "name": "taner",
+      "passwordHash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+      "role": "user",
+      "isPremium": false,
+      "createdAt": "2026-07-02T18:08:10.886Z",
+      "isBanned": false
+    },
+    {
+      "id": "c1f79f0f-c2d8-4ff2-acd4-9f7b0bd530f6",
+      "email": "test@gmail.com",
+      "name": "test",
+      "passwordHash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+      "role": "user",
+      "isPremium": false,
+      "createdAt": "2026-07-02T18:18:56.117Z",
+      "lastIp": "95.10.28.111",
+      "ips": [
+        "95.10.28.111"
+      ],
+      "isBanned": false
+    }
+  ],
+  "announcements": [
+    {
+      "id": "ann-1",
+      "title": "Sitemize Hoş Geldiniz! 🚀",
+      "content": "Türkiye'nin en hızlı, güvenli ve tamamen reklamsız YouTube MP3 / MP4 dönüştürücü platformuna hoş geldiniz. Sınırsız ve yüksek kalitede dönüştürme yapabilirsiniz.",
+      "createdAt": "2026-07-02T18:01:11.620Z",
+      "authorName": "Tümay Işıldak"
+    },
+    {
+      "id": "ann-2",
+      "title": "Yeni MP3 320kbps Desteği Eklendi! 🎵",
+      "content": "Ses dosyası dönüştürmelerinde artık en yüksek ses kalitesi olan 320kbps kalitesini seçebilirsiniz. Keyifli dinlemeler dileriz!",
+      "createdAt": "2026-07-02T18:01:11.620Z",
+      "authorName": "Sistem Yöneticisi"
+    }
+  ],
+  "conversions": [],
+  "config": {
+    "premiumMonthlyPrice": 49,
+    "premiumYearlyPrice": 470,
+    "bankDetails": {
+      "bankName": "Garanti BBVA",
+      "iban": "TR93 0006 2000 0001 2345 6789 01",
+      "accountHolder": "Tümay Işıldak"
+    }
+  },
+  "bannedIps": []
+}
