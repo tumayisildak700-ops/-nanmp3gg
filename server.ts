@@ -985,7 +985,7 @@ app.get("/api/admin/announcements", authenticateToken, requireAdmin, (req, res) 
 // 5. Announcements: Create (Admin Only)
 app.post("/api/announcements", authenticateToken, requireAdmin, (req: any, res: any) => {
   try {
-    const { title, content, category, isPinned, status, scheduledAt, botActive, botTarget, botSpeed } = req.body;
+    const { title, content, category, isPinned, status, scheduledAt } = req.body;
     if (!title || !content) {
       return res.status(400).json({ error: "Başlık ve içerik gereklidir." });
     }
@@ -1002,10 +1002,7 @@ app.post("/api/announcements", authenticateToken, requireAdmin, (req: any, res: 
       readCount: 0,
       acknowledgedBy: [],
       createdAt: new Date().toISOString(),
-      authorName: req.user.name,
-      botActive: !!botActive,
-      botTarget: typeof botTarget === "number" ? botTarget : 100,
-      botSpeed: botSpeed || "normal"
+      authorName: req.user.name
     };
 
     if (!db.announcements) db.announcements = [];
@@ -1023,7 +1020,7 @@ app.post("/api/announcements", authenticateToken, requireAdmin, (req: any, res: 
 // 5.1 Announcements: Update/Edit (Admin Only)
 app.put("/api/admin/announcements/:id", authenticateToken, requireAdmin, (req: any, res: any) => {
   try {
-    const { title, content, category, isPinned, status, scheduledAt, botActive, botTarget, botSpeed } = req.body;
+    const { title, content, category, isPinned, status, scheduledAt } = req.body;
     if (!title || !content) {
       return res.status(400).json({ error: "Başlık ve içerik gereklidir." });
     }
@@ -1045,9 +1042,6 @@ app.put("/api/admin/announcements/:id", authenticateToken, requireAdmin, (req: a
     ann.isPinned = !!isPinned;
     ann.status = status || "published";
     ann.scheduledAt = scheduledAt || null;
-    ann.botActive = !!botActive;
-    if (typeof botTarget === "number") ann.botTarget = botTarget;
-    if (botSpeed) ann.botSpeed = botSpeed;
 
     writeDb(db);
     logSystemActivity("Duyuru Güncellendi", `"${ann.title}" başlıklı duyuru güncellendi (Durum: ${ann.status}).`);
@@ -1132,34 +1126,6 @@ app.post("/api/admin/announcements/:id/increment-read-count", authenticateToken,
     res.json({ message: "Duyuru okuma sayısı artırıldı.", readCount: ann.readCount });
   } catch (error) {
     res.status(500).json({ error: "Duyuru okuma sayısı güncellenirken hata oluştu." });
-  }
-});
-
-// 6.6 Announcements: Admin Configure Bot (Admin Only)
-app.post("/api/admin/announcements/:id/configure-bot", authenticateToken, requireAdmin, (req, res) => {
-  try {
-    const { botActive, botTarget, botSpeed } = req.body;
-
-    const db = readDb();
-    const annIndex = db.announcements.findIndex((a: any) => a.id === req.params.id);
-
-    if (annIndex === -1) {
-      return res.status(404).json({ error: "Duyuru bulunamadı." });
-    }
-
-    const ann = db.announcements[annIndex];
-    ann.botActive = !!botActive;
-    if (typeof botTarget === "number") {
-      ann.botTarget = botTarget;
-    }
-    if (botSpeed) {
-      ann.botSpeed = botSpeed;
-    }
-
-    writeDb(db);
-    res.json({ message: "Duyuru bot ayarları güncellendi kanka.", announcement: ann });
-  } catch (error) {
-    res.status(500).json({ error: "Duyuru bot ayarları güncellenirken hata oluştu." });
   }
 });
 
@@ -2521,7 +2487,7 @@ setInterval(() => {
   }
 }, 800); // Check and tick progress every 800ms
 
-// Announcement Read Count Bot Background Task
+// Announcement Read Count Bot Background Task -> Now only handles scheduled announcements auto-publishing
 setInterval(() => {
   try {
     const db = readDb();
@@ -2535,32 +2501,6 @@ setInterval(() => {
           ann.status = "published";
           updated = true;
           logSystemActivity("Sistem", `Zamanlanmış "${ann.title}" başlıklı duyuru otomatik olarak yayınlandı.`);
-        }
-
-        // Only run the bot tick on published announcements (or legacy announcements that don't have a status)
-        const isPublished = ann.status === "published" || (!ann.status && !ann.scheduledAt);
-
-        if (isPublished && ann.botActive && (ann.readCount || 0) < (ann.botTarget || 100)) {
-          updated = true;
-          const speed = ann.botSpeed || "normal";
-          let increment = 1;
-
-          if (speed === "yavas") {
-            // yavas: 1 to 3
-            increment = Math.floor(Math.random() * 3) + 1;
-          } else if (speed === "hizli") {
-            // hizli: 15 to 35
-            increment = Math.floor(Math.random() * 21) + 15;
-          } else {
-            // normal: 4 to 10
-            increment = Math.floor(Math.random() * 7) + 4;
-          }
-
-          ann.readCount = Math.min(ann.botTarget || 100, (ann.readCount || 0) + increment);
-
-          if (ann.readCount >= (ann.botTarget || 100)) {
-            ann.botActive = false;
-          }
         }
       });
     }

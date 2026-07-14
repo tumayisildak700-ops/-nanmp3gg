@@ -99,9 +99,6 @@ export default function AdminPanel({ currentUser, token, onConfigChange }: Admin
   const [newAnnCategory, setNewAnnCategory] = useState("Duyuru");
   const [newAnnIsPinned, setNewAnnIsPinned] = useState(false);
   const [creatingAnnouncement, setCreatingAnnouncement] = useState(false);
-  const [newAnnBotActive, setNewAnnBotActive] = useState(false);
-  const [newAnnBotTarget, setNewAnnBotTarget] = useState<number | "">(500);
-  const [newAnnBotSpeed, setNewAnnBotSpeed] = useState<"yavas" | "normal" | "hizli">("normal");
   const [newAnnStatus, setNewAnnStatus] = useState<"published" | "draft" | "scheduled">("published");
   const [newAnnScheduledAt, setNewAnnScheduledAt] = useState("");
 
@@ -113,9 +110,6 @@ export default function AdminPanel({ currentUser, token, onConfigChange }: Admin
   const [editAnnIsPinned, setEditAnnIsPinned] = useState(false);
   const [editAnnStatus, setEditAnnStatus] = useState<"published" | "draft" | "scheduled">("published");
   const [editAnnScheduledAt, setEditAnnScheduledAt] = useState("");
-  const [editAnnBotActive, setEditAnnBotActive] = useState(false);
-  const [editAnnBotTarget, setEditAnnBotTarget] = useState<number | "">(500);
-  const [editAnnBotSpeed, setEditAnnBotSpeed] = useState<"yavas" | "normal" | "hizli">("normal");
   const [updatingAnnouncement, setUpdatingAnnouncement] = useState(false);
 
   // IP Ban Management States
@@ -454,9 +448,6 @@ export default function AdminPanel({ currentUser, token, onConfigChange }: Admin
           isPinned: newAnnIsPinned,
           status: newAnnStatus,
           scheduledAt: newAnnStatus === "scheduled" ? newAnnScheduledAt : null,
-          botActive: newAnnBotActive,
-          botTarget: typeof newAnnBotTarget === "number" ? newAnnBotTarget : 500,
-          botSpeed: newAnnBotSpeed,
         }),
       });
 
@@ -467,9 +458,6 @@ export default function AdminPanel({ currentUser, token, onConfigChange }: Admin
         setNewAnnContent("");
         setNewAnnCategory("Duyuru");
         setNewAnnIsPinned(false);
-        setNewAnnBotActive(false);
-        setNewAnnBotTarget(500);
-        setNewAnnBotSpeed("normal");
         setNewAnnStatus("published");
         setNewAnnScheduledAt("");
         fetchAnnouncements();
@@ -506,9 +494,6 @@ export default function AdminPanel({ currentUser, token, onConfigChange }: Admin
           isPinned: editAnnIsPinned,
           status: editAnnStatus,
           scheduledAt: editAnnStatus === "scheduled" ? editAnnScheduledAt : null,
-          botActive: editAnnBotActive,
-          botTarget: typeof editAnnBotTarget === "number" ? editAnnBotTarget : 500,
-          botSpeed: editAnnBotSpeed,
         }),
       });
 
@@ -570,31 +555,6 @@ export default function AdminPanel({ currentUser, token, onConfigChange }: Admin
         onConfigChange?.();
       } else {
         throw new Error(data.error || "Okuma sayısı artırılamadı.");
-      }
-    } catch (err: any) {
-      setError(err.message || "Hata oluştu.");
-    }
-  };
-
-  const handleConfigureBot = async (id: string, botActive: boolean, botTarget?: number, botSpeed?: string) => {
-    setError("");
-    setSuccessMsg("");
-    try {
-      const response = await fetch(`/api/admin/announcements/${id}/configure-bot`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ botActive, botTarget, botSpeed }),
-      });
-      const data = await response.json();
-      if (response.ok) {
-        setSuccessMsg(botActive ? "Okuma botu aktif edildi kanka! 🤖" : "Okuma botu durduruldu kanka!");
-        fetchAnnouncements();
-        onConfigChange?.();
-      } else {
-        throw new Error(data.error || "Bot ayarları güncellenemedi.");
       }
     } catch (err: any) {
       setError(err.message || "Hata oluştu.");
@@ -2357,71 +2317,6 @@ export default function AdminPanel({ currentUser, token, onConfigChange }: Admin
                 />
               </div>
 
-              {/* Bot Configuration Card inside creation form */}
-              <div className="p-4 rounded-xl border border-neutral-800 bg-neutral-950/50 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                      🤖 Otomatik Okuma Sayısı Botu
-                    </span>
-                    <span className="text-[10px] text-neutral-400 bg-neutral-800/80 px-1.5 py-0.5 rounded font-medium">Yeni</span>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={newAnnBotActive}
-                      onChange={(e) => setNewAnnBotActive(e.target.checked)}
-                      className="sr-only peer"
-                    />
-                    <div className="w-9 h-5 bg-neutral-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-neutral-400 after:border-neutral-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-red-600 peer-checked:after:bg-white"></div>
-                    <span className="ml-2 text-xs font-bold text-neutral-400 peer-checked:text-red-400">
-                      {newAnnBotActive ? "Aktif" : "Pasif"}
-                    </span>
-                  </label>
-                </div>
-
-                {newAnnBotActive && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-neutral-800/50"
-                  >
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-neutral-400 uppercase">Hedef Okuma Sayısı</label>
-                      <input
-                        type="number"
-                        min="1"
-                        required
-                        value={newAnnBotTarget}
-                        onChange={(e) => {
-                          const valStr = e.target.value;
-                          if (valStr === "") {
-                            setNewAnnBotTarget("");
-                          } else {
-                            const valNum = parseInt(valStr);
-                            setNewAnnBotTarget(isNaN(valNum) ? "" : valNum);
-                          }
-                        }}
-                        placeholder="Örn: 500"
-                        className="w-full rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-1.5 text-xs text-white focus:border-red-500 focus:outline-none transition font-bold"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-neutral-400 uppercase">Artış Hızı</label>
-                      <select
-                        value={newAnnBotSpeed}
-                        onChange={(e: any) => setNewAnnBotSpeed(e.target.value)}
-                        className="w-full rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-1.5 text-xs text-white focus:border-red-500 focus:outline-none transition"
-                      >
-                        <option value="yavas">🐌 Yavaş (+1-3 okuma / 5sn)</option>
-                        <option value="normal">⚡ Normal (+4-10 okuma / 5sn)</option>
-                        <option value="hizli">🔥 Hızlı (+15-35 okuma / 5sn)</option>
-                      </select>
-                    </div>
-                  </motion.div>
-                )}
-              </div>
-
               {/* Publishing Status & Scheduling */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl border border-neutral-800 bg-neutral-950/50">
                 <div className="space-y-1">
@@ -2613,58 +2508,6 @@ export default function AdminPanel({ currentUser, token, onConfigChange }: Admin
                               Ekle
                             </button>
                           </div>
-
-                          {/* Inline Read Count Bot Config */}
-                          <div className="flex flex-wrap items-center gap-1.5 bg-neutral-950 px-2 py-0.5 rounded border border-neutral-800">
-                            <span className="text-[9px] text-neutral-400 font-bold uppercase mr-1">🤖 Okuma Botu:</span>
-                            {ann.botActive ? (
-                              <>
-                                <span className="text-[9px] font-bold text-green-400 animate-pulse bg-green-950/40 px-1.5 py-0.5 rounded">
-                                  AKTİF ({ann.readCount || 0}/{ann.botTarget || 100} - {ann.botSpeed || "normal"})
-                                </span>
-                                <button
-                                  onClick={() => handleConfigureBot(ann.id, false)}
-                                  className="px-1.5 py-0.5 rounded bg-red-950/60 text-[9px] text-red-400 hover:text-white hover:bg-red-700 transition cursor-pointer font-bold"
-                                >
-                                  Durdur
-                                </button>
-                              </>
-                            ) : (
-                              <>
-                                <span className="text-[9px] font-bold text-neutral-500 bg-neutral-900 px-1.5 py-0.5 rounded">KAPALI</span>
-                                <span className="text-neutral-700 text-[9px] mx-0.5">|</span>
-                                <input
-                                  type="number"
-                                  min="1"
-                                  placeholder="Hedef"
-                                  defaultValue={ann.botTarget || 500}
-                                  id={`bot-target-${ann.id}`}
-                                  className="w-12 bg-neutral-900 border border-neutral-800 text-[9px] text-white px-1 py-0.5 rounded text-center font-bold"
-                                />
-                                <select
-                                  id={`bot-speed-${ann.id}`}
-                                  defaultValue={ann.botSpeed || "normal"}
-                                  className="bg-neutral-900 border border-neutral-800 text-[9px] text-white px-1 py-0.5 rounded focus:outline-none focus:border-red-500 font-bold"
-                                >
-                                  <option value="yavas">Yavaş</option>
-                                  <option value="normal">Normal</option>
-                                  <option value="hizli">Hızlı</option>
-                                </select>
-                                <button
-                                  onClick={() => {
-                                    const targetInput = document.getElementById(`bot-target-${ann.id}`) as HTMLInputElement;
-                                    const speedSelect = document.getElementById(`bot-speed-${ann.id}`) as HTMLSelectElement;
-                                    const targetVal = parseInt(targetInput?.value || "500") || 500;
-                                    const speedVal = speedSelect?.value || "normal";
-                                    handleConfigureBot(ann.id, true, targetVal, speedVal);
-                                  }}
-                                  className="px-1.5 py-0.5 rounded bg-green-600 hover:bg-green-700 text-[9px] text-white font-bold transition cursor-pointer"
-                                >
-                                  Başlat 🚀
-                                </button>
-                              </>
-                            )}
-                          </div>
                         </div>
                       </div>
 
@@ -2678,9 +2521,6 @@ export default function AdminPanel({ currentUser, token, onConfigChange }: Admin
                             setEditAnnIsPinned(!!ann.isPinned);
                             setEditAnnStatus(ann.status || "published");
                             setEditAnnScheduledAt(ann.scheduledAt || "");
-                            setEditAnnBotActive(!!ann.botActive);
-                            setEditAnnBotTarget(ann.botTarget || 500);
-                            setEditAnnBotSpeed(ann.botSpeed || "normal");
                           }}
                           className="rounded-lg p-2 text-neutral-500 hover:text-amber-400 hover:bg-amber-500/5 transition border border-transparent hover:border-amber-500/10 cursor-pointer"
                           title="Duyuruyu Düzenle (Taslak/Planlama Güncelle)"
